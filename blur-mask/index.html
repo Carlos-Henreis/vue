@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link href='https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Material+Icons' rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/vuetify/dist/vuetify.min.css" rel="stylesheet">
+  <title></title>
+</head>
+<body>
+  <v-app id="app">
+    <v-container grid-list-md text-xs-left id="main">
+      <v-layout row wrap>
+        <v-flex xs12 lg8>
+          <v-layout column>
+            <v-flex xs12>
+              <v-toolbar color="grey" dark id="menuImage">
+                <v-toolbar-side-icon class="hidden-lg-and-up" @click="drawer = !drawer"></v-toolbar-side-icon>
+                <v-flex xs10 v-if="upload_image">
+                  <v-text-field
+                    pt-4
+                    autofocus
+                    placeholder="Select Image"
+                    solo
+                    @click='pickFile'
+                    v-model='imageName'
+                    prepend-icon='attach_file'
+                  ></v-text-field>
+        					<input
+        						type="file"
+                    ref="imageUploader"
+        						style="display: none"
+        						accept="image/*"
+        						@change="onFilePicked"
+        					>
+                </v-flex>
+                <v-btn
+                  color="primary"
+                  v-if="!upload_image"
+                  @click="upload_image = true"
+                >
+                  <v-icon left>image</v-icon>
+                  New Image
+                </v-btn>
+                <v-spacer v-if="!upload_image"></v-spacer>
+                <v-btn
+                  :disabled="download_failed"
+                  color="success"
+                  v-if="!upload_image"
+                  @click="downloadImageBlur"
+                >
+                  <v-icon left>cloud_download</v-icon>
+                  Download
+                </v-btn>
+              </v-toolbar>
+
+              <v-card>
+                <v-container
+                  fluid
+                  grid-list-md
+                  pa-0
+                >
+                  <v-layout row wrap>
+                    <v-flex xs12 pa-2>
+                      <v-card>
+                        <div ref="capture">
+                          <div id="mask" ref="mask">
+                            <div id="blurred" pa-0>
+                              <img id="blurred-img" ref="blurredImg" :src="imageUrl">
+                            </div>
+                          </div>
+                          <img ref="unblurred" id="unblurred" :src="imageUrl">
+                        </div>
+                      </v-card>
+                    </v-flex>
+                  </v-layout>
+                </v-container>
+              </v-card>
+            </v-flex>
+          </v-layout>
+        </v-flex>
+        <v-flex md4 hidden-md-and-down>
+          <v-card>
+            <v-toolbar color="grey" dark>
+              <v-toolbar-title>Adjust the filter</v-toolbar-title>
+              <v-spacer></v-spacer>
+              <v-btn
+                @click="resetVal()"
+                color="error"
+              >
+                <v-icon left>replay</v-icon>
+                Reset
+              </v-btn>
+            </v-toolbar>
+            <v-card>
+              <v-container
+                fluid
+                grid-list-md
+              >
+                <v-layout row wrap>
+                  <v-flex xs12>
+                    <v-subheader class="pl-0"><h2>Blur {{blur_slider}}px</h2></v-subheader>
+                  </v-flex>
+                  <v-flex xs10>
+                    <v-slider
+                      v-model="blur_slider"
+                      :max="50"
+                      thumb-label="always"
+                    ></v-slider>
+                  </v-flex>
+                  <v-flex xs2>
+                    <v-text-field
+                      v-model="blur_slider"
+                      class="mt-0"
+                      type="number"
+                    ></v-text-field>
+                  </v-flex>
+
+                  <v-flex xs12>
+                    <v-subheader class="pl-0"><h2>mask diameter {{diameter_slider}}px</h2></v-subheader>
+                  </v-flex>
+                  <v-flex xs10>
+                    <v-slider
+                      v-model="diameter_slider"
+                      :max="640"
+                      thumb-label="always"
+                    ></v-slider>
+                  </v-flex>
+                  <v-flex xs2>
+                    <v-text-field
+                      v-model="diameter_slider"
+                      class="mt-0"
+                      type="number"
+                    ></v-text-field>
+                  </v-flex>
+
+                  <v-flex xs12>
+                    <v-subheader class="pl-0"><h2>mask border radius {{radius_slider}}%</h2></v-subheader>
+                  </v-flex>
+                  <v-flex xs10>
+                    <v-slider
+                      v-model="radius_slider"
+                      :max="100"
+                      :min="1"
+                      thumb-label="always"
+                    ></v-slider>
+                  </v-flex>
+                  <v-flex xs2>
+                    <v-text-field
+                      v-model="radius_slider"
+                      class="mt-0"
+                      type="number"
+                    ></v-text-field>
+                  </v-flex>
+                </v-layout>
+              </v-container>
+            </v-card>
+          </v-card>
+        </v-flex>
+        <v-navigation-drawer
+          v-model="drawer"
+          absolute
+          class="hidden-lg-and-up"
+          temporary
+        >
+        <v-card>
+          <v-toolbar color="grey" dark>
+            <v-toolbar-title>Adjust the filter</v-toolbar-title>
+            <v-spacer></v-spacer>
+            <v-btn
+              @click="resetVal()"
+              color="error"
+            >
+              <v-icon left>replay</v-icon>
+              Reset
+            </v-btn>
+          </v-toolbar>
+          <v-card>
+            <v-container
+              fluid
+              grid-list-md
+            >
+              <v-layout row wrap>
+                <v-flex xs12>
+                  <v-subheader class="pl-0"><h2>Blur {{blur_slider}}px</h2></v-subheader>
+                </v-flex>
+                <v-flex xs10>
+                  <v-slider
+                    v-model="blur_slider"
+                    :max="50"
+                    thumb-label="always"
+                  ></v-slider>
+                </v-flex>
+                <v-flex xs2>
+                  <v-text-field
+                    v-model="blur_slider"
+                    class="mt-0"
+                    type="number"
+                  ></v-text-field>
+                </v-flex>
+
+                <v-flex xs12>
+                  <v-subheader class="pl-0"><h2>mask diameter {{diameter_slider}}px</h2></v-subheader>
+                </v-flex>
+                <v-flex xs10>
+                  <v-slider
+                    v-model="diameter_slider"
+                    :max="640"
+                    thumb-label="always"
+                  ></v-slider>
+                </v-flex>
+                <v-flex xs2>
+                  <v-text-field
+                    v-model="diameter_slider"
+                    class="mt-0"
+                    type="number"
+                  ></v-text-field>
+                </v-flex>
+
+                <v-flex xs12>
+                  <v-subheader class="pl-0"><h2>mask border radius {{radius_slider}}%</h2></v-subheader>
+                </v-flex>
+                <v-flex xs10>
+                  <v-slider
+                    v-model="radius_slider"
+                    :max="100"
+                    :min="1"
+                    thumb-label="always"
+                  ></v-slider>
+                </v-flex>
+                <v-flex xs2>
+                  <v-text-field
+                    v-model="radius_slider"
+                    class="mt-0"
+                    type="number"
+                  ></v-text-field>
+                </v-flex>
+              </v-layout>
+            </v-container>
+          </v-card>
+        </v-card>
+        </v-navigation-drawer>
+        <a href="#" ref='downloadImageLink'></a>
+      </v-layout>
+    </v-container>
+  </v-app>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vuetify/dist/vuetify.js"></script>
+  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.9.1/jquery-ui.min.js"></script>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui-touch-punch/0.2.3/jquery.ui.touch-punch.min.js"></script>
+  <script type="text/javascript" src="https://html2canvas.hertzen.com/dist/html2canvas.js"></script>
+  <script>
+    $(function() {
+        $( "#mask" ).draggable({ containment: "parent" });
+    });
+
+    new Vue({
+      el: '#app',
+      data () {
+        return {
+          drawer: false,
+          upload_image: false,
+          download_failed: true,
+          diameter_slider: 64,
+          blur_slider: 10,
+          imageDetails: {
+            'naturalHeight': null,
+            'naturalWidth': null,
+            'margin-left': null,
+            'margin-top': null
+          },
+          radius_slider: 100,
+          imageName: '',
+      		imageUrl: 'https://placehold.it/480'
+        }
+      },
+      watch: {
+        imageDetails: {
+          handler: function (val, oldVal) {
+            //Redimensiona a imagem para possuir 720px de lagura e determina o quanto a imagem está do top e left
+            this.$refs.blurredImg.style.height = ((720*val['naturalHeight'])/val['naturalWidth'])+'px'
+            this.$refs.blurredImg.style.width = '720px'
+            this.$refs.blurredImg.style.left = this.imageDetails['margin-left']+'px'
+            this.$refs.blurredImg.style.top = this.imageDetails['margin-top']+'px'
+            this.$refs.unblurred.style.height = ((720*val['naturalHeight'])/val['naturalWidth'])+'px'
+            this.$refs.unblurred.style.width = '720px'
+          },
+          deep: true
+        },
+        radius_slider(val) {
+          this.$refs.mask.style.borderRadius =val+'%'
+        },
+        diameter_slider(val) {
+          this.$refs.mask.style.height =val+'px'
+          this.$refs.mask.style.width =val+'px'
+        },
+        blur_slider(val) {
+          this.$refs.blurredImg.style.filter ='blur('+val+'px)'
+        },
+        imageUrl(val) {
+          let that = this
+          //Toda vez que uma imagem e carregada calcula a posição da imagem e filtro
+          let margin = parseFloat($("#main").css('margin-left').match(/\d*/))
+          let padding = parseFloat($("#main").css('padding-left').match(/\d*/))
+          this.imageDetails['margin-left'] = margin+padding + 4
+          margin = parseFloat($("#main").css('margin-top').match(/\d*/))
+          padding = parseFloat($("#main").css('padding-top').match(/\d*/))
+          let menuImage = parseFloat($("#menuImage").css('padding-top').match(/\d*/)) +parseFloat($("#menuImage").css('margin-top').match(/\d*/)) + $("#menuImage").height()
+          this.imageDetails['margin-top'] = margin+padding + 4 + menuImage
+          let i = new Image()
+          i.onload = function(){
+            //Preciso saber a resolução original da imagem
+            that.imageDetails['naturalHeight'] = i.height
+            that.imageDetails['naturalWidth'] = i.width
+          }
+          i.src = val
+          this.upload_image = false
+          this.download_failed = false
+        }
+      },
+      head () {
+        return {
+          title: 'blur mask'
+        }
+      },
+      methods: {
+        downloadImageBlur () {
+          let that = this
+          html2canvas(document.querySelector('#mask'), {
+            backgroundColor: null,
+            allowTaint: true
+          }).then(h2c => {
+            //'referencio' a imagem não borrada
+            let image = document.getElementById('unblurred')
+            //Posição da mascara na imagem com proporção alterada
+            let pos = $('#mask')[0].getBoundingClientRect()
+            let canvas = document.createElement('canvas')
+            //Define a imagem com a resolução original
+            canvas.height = that.imageDetails['naturalHeight']
+            canvas.width = that.imageDetails['naturalWidth']
+            var ctx = canvas.getContext('2d')
+            //Persisto a imagem original
+            ctx.drawImage(image, 0, 0)
+            //Seto o filtro em blur_slider px definido pelo usuário
+            ctx.filter = 'blur('+that.blur_slider+'px)'
+            //Calculo da posição da mascara na imagem original (regra de três básica)
+            let posx = (((pos.x - that.imageDetails['margin-left'])/image.width)*that.imageDetails['naturalWidth'])
+            let posy = (((pos.y - that.imageDetails['margin-top'])/image.height)*that.imageDetails['naturalHeight'])
+            //calculo da dimenção da máscara em relação da proporção da imagem original
+            widthMask = (that.imageDetails['naturalWidth'] * h2c.width) / image.width
+            heightMask = (that.imageDetails['naturalHeight'] * h2c.height) / image.height
+            //'persisto' a mascara em cima da imagem
+            ctx.drawImage(h2c, posx, posy, widthMask, heightMask)
+            //Gerar o link para baixar a imagem com a mascara
+            this.$refs.downloadImageLink.href = canvas.toDataURL();
+      			this.$refs.downloadImageLink.download = 'filtered.png';
+            this.$refs.downloadImageLink.click()
+          })
+        },
+        resetVal() {
+          this.diameter_slider = 64,
+          this.blur_slider = 10,
+          this.radius_slider= 100
+        },
+        pickFile () {
+          this.$refs.imageUploader.click()
+        },
+        onFilePicked (e) {
+          const files = e.target.files
+          if(files[0] !== undefined) {
+            this.imageName = files[0].name
+            if(this.imageName.lastIndexOf('.') <= 0) {
+              return
+            }
+            const fr = new FileReader ()
+            fr.readAsDataURL(files[0])
+            fr.addEventListener('load', () => {
+              this.imageUrl = fr.result
+            })
+          } else {
+            this.imageName = ''
+            this.imageUrl = 'http://placehold.it/480'
+          }
+        }
+      }
+    })
+  </script>
+  <style>
+  #mask {
+    width: 120px;
+    height: 120px;
+    border-radius:100%;
+    box-shadow: 1px 1px 1px 1px grey;
+    overflow: hidden;
+    position: absolute;
+    cursor: move;
+    top:calc(50% - 25px);
+    left:calc(50% - 25px);
+  }
+
+  #blurred{
+    position: absolute;
+    top:0;
+    left:0;
+    z-index:999;
+    width:100%;
+    height:100%;
+    overflow: hidden;
+  }
+  #blurred img{
+    height: 480px;
+    width:55.2%;
+    position:fixed;
+    filter: blur(1px);
+    left:111px;
+    top:92px;
+  }
+
+  #unblurred{
+    height: 480px;
+    width:100%;
+  }
+  </style>
+</body>
+</html>
